@@ -1,8 +1,12 @@
+# by @https://github.com/ttharden/Keyframe-extraction
 import numpy as np
+import logging
 
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
 
 def kmeans_init(data):
-    print("In the process of initialising the center")
+    log.info("In the process of initialising the center")
     n = len(data)
     # calculate sqrt(n)
     sqrt_n = int(np.sqrt(n))
@@ -11,11 +15,16 @@ def kmeans_init(data):
 
     # pick init_center
     while len(centers) < sqrt_n:
-
+        log.info(f"In the process of initialising the center {len(centers)}")
         sse_min = float('inf')
         for i in range(n):
             center = centers.copy()
-            if np.any(data[i] != centers):
+            def if_data_in_centers():
+                for cen in center:
+                    if np.all(data[i] == cen):
+                        return True
+                return False
+            if not if_data_in_centers():
                 center.append(data[i])
                 center = np.array(center)
                 # print(center)

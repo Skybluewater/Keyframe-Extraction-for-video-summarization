@@ -1,21 +1,31 @@
+# by @https://github.com/ttharden/Keyframe-extraction
 import numpy as np
+import logging
 from sklearn.metrics import silhouette_score
 from scipy.spatial.distance import cdist
 from init_center import kmeans_init
 
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
 
 def kmeans_silhouette(features):
     # calculate sqrt(n)
     sqrt_n = int(np.sqrt(len(features)))
     # Initialise k and clustering results
+    features = [i[0] for i in features]
     k = sqrt_n
-    best_k = k
-    best_clusters = None
     best_avg_silhouette = -1
 
     # Results of the selection of the initial center
     clusters, centers = kmeans_init(features)
-
+    
+    best_clusters = clusters.copy()
+    best_centers = centers.copy()
+    best_k = k
+    center_indices = []
+    for center in best_centers:
+        center_index = np.where((features == center).all(axis=1))[0][0]
+        center_indices.append(center_index)
     # Iterative Procedure
     while k > 2:
         # Calculate the Euclidean distance between cluster centers
@@ -42,7 +52,7 @@ def kmeans_silhouette(features):
         new_centers = []
         for cluster_id in range(k - 1):
             # Get samples of the current cluster
-            cluster_samples = features[clusters == cluster_id]
+            cluster_samples = [features[i] for i in range(len(features)) if clusters[i] == cluster_id]
             # Calculate the current cluster mean
             cluster_mean = np.mean(cluster_samples, axis=0)
             # Calculate the Euclidean distance between the sample and the centre point to find the actual center

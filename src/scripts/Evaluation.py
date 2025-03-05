@@ -1,9 +1,13 @@
+import os
 import copy
+import json
 import cv2
+import argparse
 import numpy as np
 
 
-def evaluation(keyframe_center, test_index, video_path):
+def evaluation(keyframes_idx, test_index, video_path, dir_path):
+    save_path = os.path.join(dir_path, "test_result.json")
     def color_histogram(img):
         hist = cv2.calcHist([img], [0, 1, 2], None, [8, 8, 8], [0, 255, 0, 255, 0, 255])
         return hist.flatten()
@@ -75,9 +79,9 @@ def evaluation(keyframe_center, test_index, video_path):
 
     x_num = 0
     match_index = []
-    lens_key = len(keyframe_center)
+    lens_key = len(keyframes_idx)
     lens_text = len(test_index)
-    keyframe_center_copy = copy.deepcopy(keyframe_center)
+    keyframe_center_copy = copy.deepcopy(keyframes_idx)
     text_index_copy = copy.deepcopy(test_index)
 
     # Get the similarity matrix
@@ -105,7 +109,7 @@ def evaluation(keyframe_center, test_index, video_path):
                     max_index = (num_i, num_j)
         i, j = max_index
         if max_num > 0.9:
-            new_i = keyframe_center[i]
+            new_i = keyframes_idx[i]
             new_j = test_index[j]
             match = (new_i, new_j)
             match_index.append(new_j)
@@ -126,9 +130,45 @@ def evaluation(keyframe_center, test_index, video_path):
     print(len(test_index))
     print(len(features))
     procession = float(x_num / len(test_index))
-    recall = float(x_num / len(keyframe_center))
+    recall = float(x_num / len(keyframes_idx))
     f_value = (2 * procession * recall) / (procession + recall)
     print("p value：" + str(procession), "r value：" + str(recall), "f value：" + str(f_value))
     # 计算保真度和压缩比
-    fidelity, ratio = fidelity_and_ratio(features, keyframe_center, test_index)
+    fidelity, ratio = fidelity_and_ratio(features, keyframes_idx, test_index)
     print("fidelity value：" + str(fidelity), "ratio value：" + str(ratio))
+    res = {
+        "f_value": f_value,
+        "p_value": procession,
+        "r_value": recall,
+        "fidelity_value": fidelity,
+        "ratio_value": ratio
+    }
+    with open(save_path, "w", encoding="utf-8") as f:
+        json.dump(res, f, ensure_ascii=False, indent=4)
+
+
+def handle_video(dir_path, video_path):
+    res_path = os.path.join(dir_path, "res.json")
+    with open(res_path, "r", encoding="utf-8") as f:
+        res = json.load(f)
+    keyframes_idx = res['keyframes_idx']
+    label_path = os.path.join(dir_path, "label.txt")
+    with open(label_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    label_idx = [int(i) for i in content.split('\n')]
+    evaluation(keyframes_idx, label_idx, video_path, dir_path)
+
+
+def main(file_dir):
+    for item in os.listdir(file_dir):
+        if item.endswith(".mp4"):
+            basename = os.path.splitext(os.path.basename(item))[0]
+            dir_path = os.path.join(file_dir, basename)
+            video_path = os.path.join(file_dir, item)
+            handle_video(dir_path, video_path)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file_dir", type=str, help="Dataset dir")
+    args = parser.parse_args()
+    main(args.file_dir)

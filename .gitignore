@@ -1,0 +1,13 @@
+Keyframe-extraction-main.zip
+Keyframe-extraction-main/
+src/pytorch_compact_bilinear_pooling-master/
+*.zip
+.vscode/
+*.mp4
+*.jpg
+*.png
+test/
+outputs/
+videos/
+*.pyc
+Dataset/
