@@ -56,5 +56,4 @@ def kmeans_init(data):
                     label = cluster_labels.copy()
 
         centers.append(join_center)
-
     return np.array(label), np.array(centers)

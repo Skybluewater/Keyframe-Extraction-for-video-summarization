@@ -74,7 +74,6 @@ def redundancy(video_path, keyframe_index, threshold):
     set_final_index = set_mid_index - set_del_index
     final_index = list(set_final_index)
     final_index.sort()
-    print(final_index)
 
     return final_index
 
