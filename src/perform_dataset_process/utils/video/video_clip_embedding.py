@@ -30,7 +30,7 @@ def _load_device_and_model():
     else:
         from transformers import AutoModel
         # "BAAI/BGE-VL-large" or "BAAI/BGE-VL-base"
-        model = AutoModel.from_pretrained(model_name, trust_remote_code=True) # You must set trust_remote_code=True
+        model = AutoModel.from_pretrained(model_name, trust_remote_code=True, device_map=device) # You must set trust_remote_code=True
         model.set_processor(model_name)
         model.eval()
     return device, model, None
