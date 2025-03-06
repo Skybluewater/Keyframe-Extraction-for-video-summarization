@@ -6,6 +6,7 @@ import json
 import torch
 import clip
 import logging
+import configparser
 from Kmeans_improvment import kmeans_silhouette
 from save_keyframe import save_frames
 from Redundancy import redundancy
@@ -15,8 +16,22 @@ from ExtractionSpectral import Spectral_Clustering_Impl
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
-device = "cuda" if torch.cuda.is_available() else "cpu"
-model, preprocess = clip.load("ViT-B/32", device=device)
+
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+# read model config and load model, default is clip model
+model_name = config.get('Settings', 'model_name', fallback='ViT-B/32')
+model, device, preprocess = None, None, None
+if model_name == "ViT-B/32":
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model, preprocess = clip.load("ViT-B/32", device=device)
+else:
+    from transformers import AutoModel
+    model = AutoModel.from_pretrained(model_name, trust_remote_code=True)
+    model.set_processor(model_name)
+    model.eval()
+log.info(f"Using model: {model_name}")
 
 
 def text_embeddings(clip_text, model, device):
@@ -47,7 +62,11 @@ def text_embeddings(clip_text, model, device):
     
     # Embed the text using the CLIP model
     with torch.no_grad():
-        text_feature = model.encode_text(text_input) if text_input is not None else None
+        if model_name == "ViT-B/32":
+            text_feature = model.encode_text(text_input) if text_input is not None else None
+        else:
+            text_feature = model.encode(text_input) if text_input is not None else None
+
     text_feature = text_feature.cpu().numpy() if text_feature is not None else None
     return text_feature
 
@@ -55,10 +74,10 @@ def text_embeddings(clip_text, model, device):
 def keyframe_extraction(dir_path, video_path):
     log.info(f"Processing video: {os.path.basename(video_path)}")
     basename = os.path.splitext(os.path.basename(video_path))[0]
-    scenes_path = os.path.join(dir_path, f'{basename}.scenes.txt')
-    features_path = os.path.join(dir_path, 'embeddings.npy')
-    chunk_path = os.path.join(dir_path, 'clips.json')
-    save_path = os.path.join(dir_path, "res.txt")
+    scenes_path = os.path.join(dir_path, f"{basename}.scenes.txt")
+    features_path = os.path.join(dir_path, f"embeddings_{model_name.split("/")[0]}.npy")
+    chunk_path = os.path.join(dir_path, "clips.json")
+    save_path = os.path.join(dir_path, f"res_{model_name.split("/")[0]}.txt")
     # Get lens segmentation data
     number_list = []
     with open(scenes_path, 'r') as file:
@@ -132,6 +151,7 @@ def main(file_dir):
             dir_path = os.path.join(file_dir, basename)
             video_path = os.path.join(file_dir, item)
             keyframe_extraction(dir_path, video_path)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
