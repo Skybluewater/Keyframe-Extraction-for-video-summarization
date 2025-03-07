@@ -93,7 +93,7 @@ def keyframe_extraction(dir_path, video_path):
         features = np.load(f)
     features = np.asarray(features)
     # print(len(features))
-    
+
     with open(chunk_path, 'r') as f:
         clips = json.load(f)
     clips = clips['aligned']
@@ -118,8 +118,8 @@ def keyframe_extraction(dir_path, video_path):
         end = number_list[i + 1]
         sub_features_img = features[start:end]
         if text_feature_e is None and text_feature_r is None:
-            best_labels, best_centers, k, index = KMeans_Extraction_Impl.clustering(sub_features_img)
-            # best_labels, best_centers, k, index = Spectral_Clustering_Impl.clustering(sub_features_img, image_features=sub_features_img) # 
+            # best_labels, best_centers, k, index = KMeans_Extraction_Impl.clustering(sub_features_img)
+            best_labels, best_centers, k, index = Spectral_Clustering_Impl.clustering(sub_features_img, image_features=sub_features_img) # 
         else:
             # Combine image features with text features
             combined_features = []
@@ -134,7 +134,7 @@ def keyframe_extraction(dir_path, video_path):
         log.info(f"Clustering result: {final_index}")
         redundant = final_index.copy()
         redundant_index.append(redundant)
-        final_index = redundancy(video_path, final_index, 0.83)
+        final_index = redundancy(video_path, final_index, 0.75)
         log.info(f"Redundant keyframe index: {final_index}")
         keyframe_index += final_index
     
