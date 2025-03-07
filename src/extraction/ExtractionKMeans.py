@@ -21,6 +21,12 @@ class KMeans_Extraction_Impl(BaseExtraction):
         # Results of the selection of the initial center
         clusters, centers = KMeans_Extraction_Impl.__kmeans_init(features)
         
+        # Remove duplicate centers
+        unique_centers, indices = np.unique(centers, axis=0, return_index=True)
+        centers = unique_centers
+        clusters = np.array([indices[cluster] for cluster in clusters])
+        k = len(centers)
+        
         # init best records
         best_clusters = clusters.copy()
         best_centers = centers.copy()
@@ -58,6 +64,8 @@ class KMeans_Extraction_Impl(BaseExtraction):
             for cluster_id in range(k - 1):
                 # Get samples of the current cluster
                 cluster_samples = [features[i] for i in range(len(features)) if clusters[i] == cluster_id]
+                if len(cluster_samples) == 0:
+                    continue
                 # Calculate the current cluster mean
                 cluster_mean = np.mean(cluster_samples, axis=0)
                 # Calculate the Euclidean distance between the sample and the centre point to find the actual center
@@ -138,3 +146,15 @@ class KMeans_Extraction_Impl(BaseExtraction):
             centers.append(join_center)
 
         return np.array(label), np.array(centers)
+    
+    @staticmethod
+    def __merge_two_nodes(features, centers):
+        # get the best centers when k = 2
+        distances = cdist(centers, features, metric='euclidean')
+        min_distance = np.inf
+        for i in range(len(centers)):
+            distance = np.sum(distances[i])
+            if distance < min_distance:
+                min_distance = distance
+                min_index = i
+        return centers[min_index]

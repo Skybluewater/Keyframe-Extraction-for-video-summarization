@@ -67,7 +67,7 @@ def redundancy(video_path, keyframe_index, threshold):
             if mid_index[i] in del_index or mid_index[j] in del_index:
                 continue
             if simis[i][j] > threshold:
-                print(mid_index[j], simis[i][j], mid_index[i])
+                # print(mid_index[j], simis[i][j], mid_index[i])
                 del_index.append(mid_index[j])
     set_mid_index = set(mid_index)
     set_del_index = set(del_index)

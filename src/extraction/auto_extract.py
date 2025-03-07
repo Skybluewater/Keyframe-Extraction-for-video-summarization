@@ -28,13 +28,13 @@ if model_name == "ViT-B/32":
     model, preprocess = clip.load("ViT-B/32", device=device)
 else:
     from transformers import AutoModel
-    model = AutoModel.from_pretrained(model_name, trust_remote_code=True)
+    model = AutoModel.from_pretrained(model_name, trust_remote_code=True, device_map=device)
     model.set_processor(model_name)
     model.eval()
 log.info(f"Using model: {model_name}")
 
 
-def text_embeddings(clip_text, model, device):
+def text_embeddings(text_input, model, device):
     # Embedding the two texts separately using the CLIP model
     def truncate_text(text, max_l=300):
         if text is None or len(text) < max_l:
@@ -47,25 +47,27 @@ def text_embeddings(clip_text, model, device):
                 return new_text + text[:max_l - len(new_text)]
             new_text += text.strip() + '. '
         return new_text
-
-    # ensure the text is short enough to be tokenize
-    retry_cnt = 0
-    max_l = 300
-    while retry_cnt < 3:
-        try:
-            text_input = clip.tokenize(clip_text).to(device) if clip_text is not None else None
-            break
-        except:
-            max_l -= 30
-            clip_text = truncate_text(clip_text, max_l)
-            retry_cnt += 1
     
     # Embed the text using the CLIP model
     with torch.no_grad():
+        # ensure the text is short enough to be tokenize
+        max_l = 300
+        retry_cnt = 0
+        while retry_cnt < 3:
+            try:
+                if model_name == "ViT-B/32":
+                    text_input = clip.tokenize(text_input).to(device) if text_input is not None else None
+                else:
+                    text_input = model.encode(text=text_input) if text_input is not None else None
+                break
+            except:
+                max_l -= 30
+                text_input = truncate_text(text_input, max_l)
+                retry_cnt += 1
         if model_name == "ViT-B/32":
             text_feature = model.encode_text(text_input) if text_input is not None else None
         else:
-            text_feature = model.encode(text_input) if text_input is not None else None
+            text_feature = text_input
 
     text_feature = text_feature.cpu().numpy() if text_feature is not None else None
     return text_feature
@@ -116,8 +118,8 @@ def keyframe_extraction(dir_path, video_path):
         end = number_list[i + 1]
         sub_features_img = features[start:end]
         if text_feature_e is None and text_feature_r is None:
-            # best_labels, best_centers, k, index = KMeans_Extraction_Impl.clustering(sub_features_img)
-            best_labels, best_centers, k, index = Spectral_Clustering_Impl.clustering(sub_features_img, image_features=sub_features_img)
+            best_labels, best_centers, k, index = KMeans_Extraction_Impl.clustering(sub_features_img)
+            # best_labels, best_centers, k, index = Spectral_Clustering_Impl.clustering(sub_features_img, image_features=sub_features_img) # 
         else:
             # Combine image features with text features
             combined_features = []
@@ -132,7 +134,7 @@ def keyframe_extraction(dir_path, video_path):
         log.info(f"Clustering result: {final_index}")
         redundant = final_index.copy()
         redundant_index.append(redundant)
-        final_index = redundancy(video_path, final_index, 0.94)
+        final_index = redundancy(video_path, final_index, 0.83)
         log.info(f"Redundant keyframe index: {final_index}")
         keyframe_index += final_index
     

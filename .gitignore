@@ -11,3 +11,5 @@ outputs/
 videos/
 *.pyc
 Dataset/
+res_files/
+res*
