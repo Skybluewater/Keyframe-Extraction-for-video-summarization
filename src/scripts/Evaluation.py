@@ -3,11 +3,17 @@ import copy
 import json
 import cv2
 import argparse
+import configparser
 import numpy as np
 
 
+config = configparser.ConfigParser()
+config.read('config.ini')
+model_name = config.get('Settings', 'model_name')
+
+
 def evaluation(keyframes_idx, test_index, video_path, dir_path):
-    save_path = os.path.join(dir_path, "test_result.json")
+    save_path = os.path.join(dir_path, f"test_result_{model_name.split("/")[0]}.json")
     def color_histogram(img):
         hist = cv2.calcHist([img], [0, 1, 2], None, [8, 8, 8], [0, 255, 0, 255, 0, 255])
         return hist.flatten()
@@ -145,37 +151,50 @@ def evaluation(keyframes_idx, test_index, video_path, dir_path):
     }
     with open(save_path, "w", encoding="utf-8") as f:
         json.dump(res, f, ensure_ascii=False, indent=4)
+    return f_value, procession, recall, fidelity, ratio
 
 
 def handle_video(dir_path, video_path):
-    res_path = os.path.join(dir_path, "res.json")
+    res_path = os.path.join(dir_path, f"res_{model_name.split("/")[0]}.txt")
     with open(res_path, "r", encoding="utf-8") as f:
-        res = json.load(f)
-    keyframes_idx = res['keyframes_idx']
+        res = f.read()
+    
+    keyframes_idx = [int(i) for i in filter(lambda x: x != '', res.split('\n'))]
     label_path = os.path.join(dir_path, "label.txt")
     with open(label_path, "r", encoding="utf-8") as f:
         content = f.read()
-    label_idx = [int(i) for i in content.split('\n')]
-    evaluation(keyframes_idx, label_idx, video_path, dir_path)
+    label_idx = [int(i) for i in filter(lambda x: x != '', content.split('\n'))]
+    return evaluation(keyframes_idx, label_idx, video_path, dir_path)
 
 
 def main(file_dir):
+    item_cnt = 0
+    f_value_sum = 0
+    procession_sum = 0
+    recall_sum = 0
+    fidelity_sum = 0
+    ratio_sum = 0
     for item in os.listdir(file_dir):
         if item.endswith(".mp4"):
             basename = os.path.splitext(os.path.basename(item))[0]
             dir_path = os.path.join(file_dir, basename)
             video_path = os.path.join(file_dir, item)
-            handle_video(dir_path, video_path)
+            f_value, procession, recall, fidelity, ratio = handle_video(dir_path, video_path)
+            f_value_sum += f_value
+            procession_sum += procession
+            recall_sum += recall
+            fidelity_sum += fidelity
+            ratio_sum += ratio
+            item_cnt += 1
+    print("Average f_value: ", f_value_sum / item_cnt)
+    print("Average procession: ", procession_sum / item_cnt)
+    print("Average recall: ", recall_sum / item_cnt)
+    print("Average fidelity: ", fidelity_sum / item_cnt)
+    print("Average ratio: ", ratio_sum / item_cnt)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("file_dir", type=str, help="Dataset dir")
     args = parser.parse_args()
     main(args.file_dir)
-    # evaluation(
-    #     # [97, 341, 549, 641, 687, 821, 887, 918, 1009, 1056, 1149, 1297, 1409, 1473, 1527, 1880, 1915, 2246, 2345, 2420, 2538, 2665, 2730, 2934, 3053, 3161, 3333, 3500],
-    #     [120, 232, 583, 595, 687, 821, 887, 918, 958, 1055, 1149, 1311, 1390, 1473, 1527, 1880, 1915, 2232, 2345, 2420, 2538, 2665, 2730, 2934, 3053, 3161, 3333, 3500],
-    #     [150, 390, 570, 750, 930, 1050, 1230, 1410, 1530, 1950, 2430, 2550, 3030, 3150],
-    #     "./Dataset/0tmA_C6XwfM.mp4",
-    #     "./Dataset/0tmA_C6XwfM"
-    # )
