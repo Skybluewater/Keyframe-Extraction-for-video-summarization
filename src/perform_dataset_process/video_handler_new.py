@@ -13,16 +13,16 @@ def main(file_dir):
             basename = os.path.splitext(item)[0]
             dir_path = os.path.join(file_dir, basename)
             # first handle all things with video
-            split_video(os.path.join(file_dir, item))
+            # split_video(os.path.join(file_dir, item))
             embedding_frames(os.path.join(file_dir, item))
             
             # then handle all things with audio
-            extract_audio_from_video(os.path.join(file_dir, item))
-            extract_text_from_audio(os.path.join(dir_path, "audio.wav"))
-            align_chunks_with_timestamps(os.path.join(dir_path, "text_3.json"))
+            # extract_audio_from_video(os.path.join(file_dir, item))
+            # extract_text_from_audio(os.path.join(dir_path, "audio.wav"))
+            # align_chunks_with_timestamps(os.path.join(dir_path, "text_3.json"))
             
             # finally align video clip with chunk
-            align_clip_with_chunk(os.path.join(file_dir, item))
+            # align_clip_with_chunk(os.path.join(file_dir, item))
 
 
 if __name__ == '__main__':

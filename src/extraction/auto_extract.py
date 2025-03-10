@@ -23,14 +23,22 @@ config.read('config.ini')
 # read model config and load model, default is clip model
 model_name = config.get('Settings', 'model_name', fallback='ViT-B/32')
 model, device, preprocess = None, None, None
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
 if model_name == "ViT-B/32":
-    device = "cuda" if torch.cuda.is_available() else "cpu"
     model, preprocess = clip.load("ViT-B/32", device=device)
-else:
+elif model_name == "BAAI/BGE-VL-large":
     from transformers import AutoModel
     model = AutoModel.from_pretrained(model_name, trust_remote_code=True, device_map=device)
     model.set_processor(model_name)
     model.eval()
+elif model_name.split("-")[0] == "LongCLIP":
+    from longclip_model import longclip
+    if model_name == "LongCLIP-B":
+        model, preprocess = longclip.load("E:\model_cache\longclip-B.pt", device=device)
+    elif model_name == "LongCLIP-L":
+        model, preprocess = longclip.load(f"E:\model_cache\longclip-L.pt", device=device)
 log.info(f"Using model: {model_name}")
 
 
@@ -57,16 +65,19 @@ def text_embeddings(text_input, model, device):
             try:
                 if model_name == "ViT-B/32":
                     text_input = clip.tokenize(text_input).to(device) if text_input is not None else None
-                else:
+                elif model_name == "BAAI/BGE-VL-large":
                     text_input = model.encode(text=text_input) if text_input is not None else None
+                elif model_name == "LongCLIP-B" or model_name == "LongCLIP-L":
+                    from longclip_model import longclip
+                    text_input = longclip.tokenize(text_input).to(device) if text_input is not None else None
                 break
             except:
                 max_l -= 30
                 text_input = truncate_text(text_input, max_l)
                 retry_cnt += 1
-        if model_name == "ViT-B/32":
+        if model_name == "ViT-B/32 or model_name == LongCLIP-B" or model_name == "LongCLIP-L":
             text_feature = model.encode_text(text_input) if text_input is not None else None
-        else:
+        elif model_name == "BAAI/BGE-VL-large" or model_name == "BAAI/BGE-VL-base":
             text_feature = text_input
 
     text_feature = text_feature.cpu().numpy() if text_feature is not None else None
@@ -117,6 +128,7 @@ def keyframe_extraction(dir_path, video_path):
         start = number_list[i]
         end = number_list[i + 1]
         sub_features_img = features[start:end]
+        # best_labels, best_centers, k, index = KMeans_Extraction_Impl.clustering(sub_features_img)
         if text_feature_e is None and text_feature_r is None:
             # best_labels, best_centers, k, index = KMeans_Extraction_Impl.clustering(sub_features_img)
             best_labels, best_centers, k, index = Spectral_Clustering_Impl.clustering(sub_features_img, image_features=sub_features_img) # 
@@ -128,6 +140,7 @@ def keyframe_extraction(dir_path, video_path):
                     combined_r = hybrid_method.hybrid_features(img_feature, text_feature_r)
                     combined_features.append(combined_r)
             combined_features = np.array(combined_features)
+            # best_labels, best_centers, k, index = KMeans_Extraction_Impl.clustering(combined_features)
             best_labels, best_centers, k, index = Spectral_Clustering_Impl.clustering(combined_features, hybrid_features=combined_features, image_features=sub_features_img, text_features=text_feature_r)
         
         final_index = [x + start for x in index]

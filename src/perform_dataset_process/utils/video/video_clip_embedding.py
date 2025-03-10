@@ -24,16 +24,22 @@ log.info(f"Using model: {model_name}")
 def _load_device_and_model():
     global model, preprocess
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    if model_name=="ViT-B/32":
+    if model_name == "ViT-B/32":
         model, preprocess = clip.load(model_name, device=device)
         return device, model, preprocess
-    else:
+    elif model_name == "BAAI/BGE-VL-large" or model_name=="BAAI/BGE-VL-base":
         from transformers import AutoModel
         # "BAAI/BGE-VL-large" or "BAAI/BGE-VL-base"
         model = AutoModel.from_pretrained(model_name, trust_remote_code=True, device_map=device) # You must set trust_remote_code=True
         model.set_processor(model_name)
         model.eval()
-    return device, model, None
+    elif model_name == "LongCLIP-B" or model_name == "LongCLIP-L":
+        from .longclip_model import longclip
+        if model_name == "LongCLIP-B":
+            model, preprocess = longclip.load("E:\model_cache\longclip-B.pt", device=device)
+        elif model_name == "LongCLIP-L":
+            model, preprocess = longclip.load(f"E:\model_cache\longclip-L.pt", device=device)
+    return device, model, preprocess
 
 def _extract_frames(video_file_path):
     video_file_name = os.path.splitext(os.path.basename(video_file_path))[0]
@@ -64,7 +70,7 @@ def embedding_frames(video_file_path, **kwargs):
     embeddings = []
     for frame in tqdm(frames, desc="Embedding frames"):
         with torch.no_grad():
-            if model_name == "ViT-B/32":
+            if model_name == "ViT-B/32" or model_name == "LongCLIP-B" or model_name == "LongCLIP-L":
                 image = preprocess(frame).unsqueeze(0).to(device)
                 embedding = model.encode_image(image)
             else:
