@@ -36,9 +36,9 @@ elif model_name == "BAAI/BGE-VL-large":
 elif model_name.split("-")[0] == "LongCLIP":
     from longclip_model import longclip
     if model_name == "LongCLIP-B":
-        model, preprocess = longclip.load(r"E:\model_cache\longclip-B.pt", device=device)
+        model, preprocess = longclip.load("E:\model_cache\longclip-B.pt", device=device)
     elif model_name == "LongCLIP-L":
-        model, preprocess = longclip.load(r"E:\model_cache\longclip-L.pt", device=device)
+        model, preprocess = longclip.load(f"E:\model_cache\longclip-L.pt", device=device)
 log.info(f"Using model: {model_name}")
 
 
@@ -85,27 +85,6 @@ def text_embeddings(text_input, model, device):
     return text_feature
 
 
-def get_joint_method():
-    method = args.joint.lower()
-    if method == "minus":
-        return Minus
-    elif method == "multiplication":
-        return Multiplication
-    elif method == "concatenate":
-        return Concatenate
-    elif method == "average":
-        return Average
-    elif method == "attention":
-        return Attention
-    elif method == "division":
-        return Division
-    elif method == "linear":
-        return LinearTransformation
-    elif method == "cbp":
-        return CBP
-    raise ValueError(f"Invalid joint method: {method}")
-
-
 def keyframe_extraction(dir_path, video_path):
     log.info(f"Processing video: {os.path.basename(video_path)}")
     basename = os.path.splitext(os.path.basename(video_path))[0]
@@ -149,10 +128,11 @@ def keyframe_extraction(dir_path, video_path):
         text_feature_r = text_embeddings(clip_text_r, model, device)
         
         # joint embedding current features and cluster
-        hybrid_method = get_joint_method()
+        hybrid_method = Concatenate
         start = number_list[i]
         end = number_list[i + 1]
         sub_features_img = features[start:end]
+        # best_labels, best_centers, k, index = KMeans_Extraction_Impl.clustering(sub_features_img)
         if text_feature_e is None and text_feature_r is None:
             # best_labels, best_centers, k, index = KMeans_Extraction_Impl.clustering(sub_features_img)
             best_labels, best_centers, k, index = Spectral_Clustering_Impl.clustering(sub_features_img, image_features=sub_features_img) # 
@@ -161,10 +141,11 @@ def keyframe_extraction(dir_path, video_path):
             combined_features = []
             for img_feature in sub_features_img:
                 if text_feature_r is not None:                    
-                    combined_r = hybrid_method.hybrid_features(img_feature, text_feature_r, img=args.weights[0], text=args.weights[1])
-                    combined_r = combined_r / np.linalg.norm(combined_r)
+                    combined_r = hybrid_method.hybrid_features(img_feature, text_feature_r)
+                    # combined_r = np.concatenate((img_feature, text_feature_r), axis=0)
                     combined_features.append(combined_r)
             combined_features = np.array(combined_features)
+            # best_labels, best_centers, k, index = KMeans_Extraction_Impl.clustering(combined_features)
             best_labels, best_centers, k, index = Spectral_Clustering_Impl.clustering(combined_features, hybrid_features=combined_features, image_features=sub_features_img, text_features=text_feature_r)
         
         final_index = [x + start for x in index]
@@ -191,19 +172,8 @@ def keyframe_extraction(dir_path, video_path):
     with open(save_path_txt, 'w') as f:
         for index in keyframe_index:
             f.write(f"{index}\n")
-
-    def default_dump(obj):
-        if isinstance(obj, np.integer):
-            return int(obj)
-        elif isinstance(obj, np.floating):
-            return float(obj)
-        elif isinstance(obj, np.ndarray):
-            return obj.tolist()
-        else:
-            return obj
-    
     with open(save_path_json, "w", encoding="utf-8") as f:
-        json.dump(json_file, f, ensure_ascii=False, indent=4, default=default_dump)
+        json.dump(json_file, f, ensure_ascii=False, indent=4)
 
 
 def main(file_dir):
@@ -219,10 +189,5 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('file_dir', type=str, help="Dataset directory")
     parser.add_argument('--threshold', type=float, default=0.8, help="Redundancy threshold")
-    parser.add_argument('--joint', type=str, default="Multiplication", help="Joint method")
-    parser.add_argument('--weights', type=float, nargs='+', default=[0.5, 0.5], help="Attention weights")
     args = parser.parse_args()
-    log.info("Args: " + str(args))
-    log.info("weights: " + str(args.weights))
-    log.info(f"Threshold: {args.threshold}")
     main(args.file_dir)

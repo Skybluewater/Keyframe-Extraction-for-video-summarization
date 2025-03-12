@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from skimage.metrics import structural_similarity as ssim
 
 
 def redundancy(video_path, keyframe_index, threshold):
@@ -21,6 +22,7 @@ def redundancy(video_path, keyframe_index, threshold):
     video = cv2.VideoCapture(video_path)
 
     # Iterate through the list of frame numbers
+    frames = []
     for frame_index in keyframe_index:
         # Setting the current frame position
         video.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
@@ -32,12 +34,14 @@ def redundancy(video_path, keyframe_index, threshold):
             # Calculate the colour histogram
             hist = color_histogram(frame)
             histograms.append(hist)
+            frames.append(frame)
 
     # Releasing the video
     video.release()
     histogram = np.array(histograms)
     new_histogram = []
     mid_index = []
+    new_frames = []
 
     # Filter pure colour frames, low information frames
     for i in range(len(histogram)):
@@ -46,20 +50,20 @@ def redundancy(video_path, keyframe_index, threshold):
         if peak_count > 10:
             new_histogram.append(histogram[i])
             mid_index.append(keyframe_index[i])
+            new_frames.append(frames[i])
     # print(mid_index)
 
     # Get the global similarity matrix
     simis = []
     for i in range(len(mid_index)):
         simi = []
-        base = new_histogram[i]
-        cv2.normalize(base, base, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
+        base = new_frames[i]
         for j in range(len(mid_index)):
-            lat = new_histogram[j]
-            cv2.normalize(lat, lat, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
-            similarity = np.dot(base, lat) / (np.linalg.norm(base) * np.linalg.norm(lat))
+            lat = new_frames[j]
+            similarity = ssim(base, lat, multichannel=True, channel_axis=-1)
             simi.append(similarity)
         simis.append(simi)
+        
     del_index = []
     # print(simis)
     for i in range(len(mid_index)):
@@ -68,7 +72,10 @@ def redundancy(video_path, keyframe_index, threshold):
                 continue
             if simis[i][j] > threshold:
                 # print(mid_index[j], simis[i][j], mid_index[i])
-                del_index.append(mid_index[j])
+                if (sum(simis[i]) > sum(simis[j])):
+                    del_index.append(mid_index[i])
+                else:
+                    del_index.append(mid_index[j])
     set_mid_index = set(mid_index)
     set_del_index = set(del_index)
     set_final_index = set_mid_index - set_del_index

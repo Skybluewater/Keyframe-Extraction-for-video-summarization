@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+import warnings
 from scipy.spatial.distance import cdist
 from sklearn.cluster import SpectralClustering
 from sklearn import metrics
@@ -24,7 +25,9 @@ class Spectral_Clustering_Impl(BaseExtraction):
         best_clusters = [0] * len(features)
         while k > 1:
             for index, gamma in enumerate((0.01,0.1,1,10)):
-                clusters = SpectralClustering(n_clusters=k, gamma=gamma).fit_predict(features)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    clusters = SpectralClustering(n_clusters=k, gamma=gamma).fit_predict(features)
                 ch_score = metrics.calinski_harabasz_score(features, clusters)
                 avg_silhouette = metrics.silhouette_score(features, clusters)
                 if ch_score > best_ch_score:

@@ -13,3 +13,6 @@ videos/
 Dataset/
 res_files/
 res*
+*.txt
+*.json
+*.npy
