@@ -26,9 +26,6 @@ def redundancy(video_path, keyframe_index, threshold, text=None):
 
     init_number = 0
     final_index = []
-
-    # print(keyframe_index)
-
     final_index.append(keyframe_index[init_number])
 
     # List for storing colour histograms
@@ -66,7 +63,6 @@ def redundancy(video_path, keyframe_index, threshold, text=None):
             new_histogram.append(histogram[i])
             mid_index.append(keyframe_index[i])
             new_frames.append(frames[i])
-    # print(mid_index)
 
     # Get the global similarity matrix
     simis = []
@@ -86,12 +82,10 @@ def redundancy(video_path, keyframe_index, threshold, text=None):
             if mid_index[i] in del_index or mid_index[j] in del_index:
                 continue
             if simis[i][j] > threshold:
-                # print(mid_index[j], simis[i][j], mid_index[i])
                 if (sum(simis[i]) > sum(simis[j])):
                     del_index.append(mid_index[i])
                 else:
                     del_index.append(mid_index[j])
-    
     
     # Remove frames in new_frames that are in del_index
     for index in sorted(del_index, reverse=True):
@@ -101,7 +95,7 @@ def redundancy(video_path, keyframe_index, threshold, text=None):
     set_del_index = set(del_index)
     set_index_after_ssim = set_mid_index - set_del_index
     
-    if text is None:
+    if text is None or len(set_index_after_ssim) == 1:
         final_index = list(set_index_after_ssim)
         final_index.sort()
         return final_index
@@ -112,8 +106,12 @@ def redundancy(video_path, keyframe_index, threshold, text=None):
     keywords = ", ".join(list(map(lambda x: x[0], keywords)))
     query_text = "Make the image contain following objects as much as possible: " + keywords
     accumulated_scores = np.zeros(len(new_frames))
+    
+    # use BGE-VL-large to filter out redundant frames again
+    # The first address is the address with frames extracted in it
     frame_base_address = os.path.join("./Dataset", os.path.splitext(os.path.basename(video_path))[0])
     def convert_index(index):
+        # the index is of 04d format...
         return "%04d" % index
     frames_address = [os.path.join(frame_base_address, f"frame_{convert_index(index)}.png") for index in mid_index]
     with torch.no_grad():
@@ -139,8 +137,8 @@ def redundancy(video_path, keyframe_index, threshold, text=None):
 
 
 if __name__ == "__main__":
-    video_path = "./Dataset2/0tmA_C6XwfM.mp4"
-    keyframe_index = [733, 788, 762]
+    video_path = "./Dataset2/-esJrBWj2d8.mp4"
+    keyframe_index = [1945, 1957, 1987]
     threshold = 0.8
     text = "It seems that it will be impossible, but with love and patience, it can be done. Sometimes your dog or cat may be uncomfortable when you are handling parts of the body that he isn't used to having touched, get him to lie down, try to relax him and slowly get him used to allowing you to touch his ears, legs, feet and paws."
     redundancy(video_path, keyframe_index, threshold, text)
