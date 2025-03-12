@@ -1,9 +1,24 @@
 import cv2
 import numpy as np
+import torch
+import os
+
 from skimage.metrics import structural_similarity as ssim
+from transformers import AutoModel
+from keybert import KeyBERT
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+model_name = "BAAI/BGE-VL-large"
+
+model = AutoModel.from_pretrained(model_name, trust_remote_code=True, device_map=device)
+model.set_processor(model_name)
+model.eval()
+
+kw_model = KeyBERT(model="all-mpnet-base-v2")
 
 
-def redundancy(video_path, keyframe_index, threshold):
+def redundancy(video_path, keyframe_index, threshold, text=None):
     # colour histogram
     def color_histogram(img):
         hist = cv2.calcHist([img], [0, 1, 2], None, [8, 8, 8], [0, 255, 0, 255, 0, 255])
@@ -65,7 +80,7 @@ def redundancy(video_path, keyframe_index, threshold):
         simis.append(simi)
         
     del_index = []
-    # print(simis)
+    
     for i in range(len(mid_index)):
         for j in range(i + 1, len(mid_index)):
             if mid_index[i] in del_index or mid_index[j] in del_index:
@@ -76,11 +91,56 @@ def redundancy(video_path, keyframe_index, threshold):
                     del_index.append(mid_index[i])
                 else:
                     del_index.append(mid_index[j])
+    
+    
+    # Remove frames in new_frames that are in del_index
+    for index in sorted(del_index, reverse=True):
+        del new_frames[mid_index.index(index)]
+    
     set_mid_index = set(mid_index)
     set_del_index = set(del_index)
-    set_final_index = set_mid_index - set_del_index
-    final_index = list(set_final_index)
-    final_index.sort()
+    set_index_after_ssim = set_mid_index - set_del_index
+    
+    if text is None:
+        final_index = list(set_index_after_ssim)
+        final_index.sort()
+        return final_index
+    
+    mid_index = sorted(list(set_index_after_ssim))
+    # extract keywords
+    keywords = kw_model.extract_keywords(text, keyphrase_ngram_range=(1, 1), stop_words='english')
+    keywords = ", ".join(list(map(lambda x: x[0], keywords)))
+    query_text = "Make the image contain following objects as much as possible: " + keywords
+    accumulated_scores = np.zeros(len(new_frames))
+    frame_base_address = os.path.join("./Dataset", os.path.splitext(os.path.basename(video_path))[0])
+    def convert_index(index):
+        return "%04d" % index
+    frames_address = [os.path.join(frame_base_address, f"frame_{convert_index(index)}.png") for index in mid_index]
+    with torch.no_grad():
+        for index in mid_index:
+            frame_address = os.path.join(frame_base_address, f"frame_{convert_index(index)}.png")
+            query = model.encode(
+                images = [frame_address], 
+                text = [query_text]
+            )
 
+            candidates = model.encode(
+                images = frames_address
+            )
+            
+            scores = query @ candidates.T
+            scores = scores.cpu().numpy().flatten()
+            accumulated_scores += scores
+
+    average_score = np.mean(accumulated_scores)
+    final_index = [mid_index[i] for i in range(len(accumulated_scores)) if accumulated_scores[i] > average_score]
+    final_index.sort()
     return final_index
 
+
+if __name__ == "__main__":
+    video_path = "./Dataset2/0tmA_C6XwfM.mp4"
+    keyframe_index = [733, 788, 762]
+    threshold = 0.8
+    text = "It seems that it will be impossible, but with love and patience, it can be done. Sometimes your dog or cat may be uncomfortable when you are handling parts of the body that he isn't used to having touched, get him to lie down, try to relax him and slowly get him used to allowing you to touch his ears, legs, feet and paws."
+    redundancy(video_path, keyframe_index, threshold, text)

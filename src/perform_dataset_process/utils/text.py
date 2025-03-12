@@ -4,7 +4,7 @@ import json
 import logging
 import configparser
 from chonkie import SemanticChunker, SentenceChunker
-from .embedding_model import SiliconFlowEmbeddings
+from embedding_model import SiliconFlowEmbeddings
 from typing import List
 from enum import Enum
 

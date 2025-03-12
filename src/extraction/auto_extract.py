@@ -173,7 +173,7 @@ def keyframe_extraction(dir_path, video_path):
         redundant_index.append(redundant)
         
         key_frame_per_shot.append(final_index.copy())
-        final_index = redundancy(video_path, final_index, args.threshold)
+        final_index = redundancy(video_path, final_index, args.threshold, text=clip_text_r)
         log.info(f"Redundant keyframe index: {final_index}")
         
         redundant_per_shot.append(final_index.copy())
