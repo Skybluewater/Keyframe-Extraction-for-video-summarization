@@ -193,8 +193,17 @@ def main(file_dir):
     print("Average ratio: ", ratio_sum / item_cnt)
 
 
+def main2():
+    evaluation(
+        [131, 172, 470, 521, 560, 655, 774, 928, 1041, 1296, 1551, 1754, 1883, 1987, 2362, 2966, 3066, 3449, 3492, 3722, 3850, 4041, 5035, 5791, 6094, 6464, 6518, 6879],
+        [150, 570, 810, 1110, 1350, 1710, 2070, 2550, 3090, 3390, 3510, 3810, 3990, 4230, 5010, 5310, 5430, 6030, 6210, 6450, 6750],
+        "./Dataset2/-esJrBWj2d8.mp4",
+        "./Dataset2/-esJrBWj2d8"
+    )
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("file_dir", type=str, help="Dataset dir")
     args = parser.parse_args()
     main(args.file_dir)
+    # main2()

@@ -1,17 +1,17 @@
 @echo off
 
-python ./src/extraction/auto_extract.py ./Dataset2 --joint attention --weights 0.5 0.5
+@REM python ./src/extraction/auto_extract.py ./Dataset2 --joint attention --weights 0.5 0.5
 
-python ./src/scripts/Evaluation.py ./Dataset2
+@REM python ./src/scripts/Evaluation.py ./Dataset2
 
-python ./src/scripts/copy_res_files.py ./Dataset2 ./res_LongCLIP_SC_Att_0.5_0.5 test_result_LongCLIP res_LongCLIP \label
+@REM python ./src/scripts/copy_res_files.py ./Dataset2 ./res_LongCLIP_SC_Att_0.5_0.5 test_result_LongCLIP res_LongCLIP \label
 
 
-python ./src/extraction/auto_extract.py ./Dataset2 --joint attention --weights 0.7 0.3
+@REM python ./src/extraction/auto_extract.py ./Dataset2 --joint attention --weights 0.7 0.3
 
-python ./src/scripts/Evaluation.py ./Dataset2
+@REM python ./src/scripts/Evaluation.py ./Dataset2
 
-python ./src/scripts/copy_res_files.py ./Dataset2 ./res_LongCLIP_SC_Att_0.7_0.3 test_result_LongCLIP res_LongCLIP \label
+@REM python ./src/scripts/copy_res_files.py ./Dataset2 ./res_LongCLIP_SC_Att_0.7_0.3 test_result_LongCLIP res_LongCLIP \label
 
 
 python ./src/extraction/auto_extract.py ./Dataset2 --joint concatenate

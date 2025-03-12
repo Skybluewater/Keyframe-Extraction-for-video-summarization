@@ -87,10 +87,6 @@ def redundancy(video_path, keyframe_index, threshold, text=None):
                 else:
                     del_index.append(mid_index[j])
     
-    # Remove frames in new_frames that are in del_index
-    for index in sorted(del_index, reverse=True):
-        del new_frames[mid_index.index(index)]
-    
     set_mid_index = set(mid_index)
     set_del_index = set(del_index)
     set_index_after_ssim = set_mid_index - set_del_index
@@ -105,7 +101,7 @@ def redundancy(video_path, keyframe_index, threshold, text=None):
     keywords = kw_model.extract_keywords(text, keyphrase_ngram_range=(1, 1), stop_words='english')
     keywords = ", ".join(list(map(lambda x: x[0], keywords)))
     query_text = "Make the image contain following objects as much as possible: " + keywords
-    accumulated_scores = np.zeros(len(new_frames))
+    accumulated_scores = np.zeros(len(mid_index))
     
     # use BGE-VL-large to filter out redundant frames again
     # The first address is the address with frames extracted in it

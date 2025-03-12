@@ -41,7 +41,6 @@ elif model_name.split("-")[0] == "LongCLIP":
         model, preprocess = longclip.load(r"E:\model_cache\longclip-L.pt", device=device)
 log.info(f"Using model: {model_name}")
 
-
 def text_embeddings(text_input, model, device):
     # Embedding the two texts separately using the CLIP model
     def truncate_text(text, max_l=300):
@@ -84,7 +83,6 @@ def text_embeddings(text_input, model, device):
     text_feature = text_feature.cpu().numpy() if text_feature is not None else None
     return text_feature
 
-
 def get_joint_method():
     method = args.joint.lower()
     if method == "minus":
@@ -104,7 +102,6 @@ def get_joint_method():
     elif method == "cbp":
         return CBP
     raise ValueError(f"Invalid joint method: {method}")
-
 
 def keyframe_extraction(dir_path, video_path):
     log.info(f"Processing video: {os.path.basename(video_path)}")
