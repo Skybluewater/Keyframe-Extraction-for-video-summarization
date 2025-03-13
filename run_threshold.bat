@@ -1,38 +1,41 @@
 @echo off
 
-@REM python ./src/extraction/auto_extract.py ./Dataset2 --joint attention --weights 0.5 0.5
 
-@REM python ./src/scripts/Evaluation.py ./Dataset2
+python .\src\extraction\Redundancy.py ./res_LongCLIP_SC_concat --threshold 0.5
 
-@REM python ./src/scripts/copy_res_files.py ./Dataset2 ./res_LongCLIP_SC_Att_0.5_0.5 test_result_LongCLIP res_LongCLIP \label
-
-
-@REM python ./src/extraction/auto_extract.py ./Dataset2 --joint attention --weights 0.7 0.3
-
-@REM python ./src/scripts/Evaluation.py ./Dataset2
-
-@REM python ./src/scripts/copy_res_files.py ./Dataset2 ./res_LongCLIP_SC_Att_0.7_0.3 test_result_LongCLIP res_LongCLIP \label
+python ./src/scripts/Evaluation.py ./res_LongCLIP_SC_concat --threshold 0.5
 
 
-python ./src/extraction/auto_extract.py ./Dataset2 --joint concatenate --threshold 0.5
 
-python ./src/scripts/Evaluation.py ./Dataset2
+python .\src\extraction\Redundancy.py ./res_LongCLIP_SC_CBP_new --threshold 0.5
 
-python ./src/scripts/copy_res_files.py ./Dataset2 ./res_LongCLIP_SC_concat_0.5 test_result_LongCLIP res_LongCLIP labe
+python ./src/scripts/Evaluation.py ./res_LongCLIP_SC_CBP_new --threshold 0.5
 
 
-python ./src/extraction/auto_extract.py ./Dataset2 --joint CBP --threshold 0.5
 
-python ./src/scripts/Evaluation.py ./Dataset2
+python .\src\extraction\Redundancy.py ./res_LongCLIP_SC_Att_0.5_0.5 --threshold 0.5
 
-python ./src/scripts/copy_res_files.py ./Dataset2 ./res_LongCLIP_SC_CBP_new_0.5 test_result_LongCLIP res_LongCLIP labe
+python ./src/scripts/Evaluation.py ./res_LongCLIP_SC_Att_0.5_0.5 --threshold 0.5
+
+
+
+python .\src\extraction\Redundancy.py ./res_LongCLIP_SC_Att_0.7_0.3 --threshold 0.5
+
+python ./src/scripts/Evaluation.py ./res_LongCLIP_SC_Att_0.7_0.3 --threshold 0.5
+
+
+
+python .\src\extraction\Redundancy.py ./res_LongCLIP_SC_sub --threshold 0.5
+
+python ./src/scripts/Evaluation.py ./res_LongCLIP_SC_sub --threshold 0.5
+
 
 
 python ./src/extraction/auto_extract.py ./Dataset2 --joint multiplication --threshold 0.5
 
 python ./src/scripts/Evaluation.py ./Dataset2
 
-python ./src/scripts/copy_res_files.py ./Dataset2 ./res_LongCLIP_SC_Mul_0.5 test_result_LongCLIP res_LongCLIP labe
+python ./src/scripts/copy_res_files.py ./Dataset2 ./res_LongCLIP_SC_Mul test_result_LongCLIP res_LongCLIP labe cli
 
 
 @REM python ./src/extraction/auto_extract.py ./Dataset2 --joint minus

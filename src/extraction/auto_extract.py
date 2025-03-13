@@ -109,7 +109,7 @@ def keyframe_extraction(dir_path, video_path):
     scenes_path = os.path.join(dir_path, f"scenes.json")
     features_path = os.path.join(dir_path, f"embeddings_{model_name.split("/")[0]}.npy")
     chunk_path = os.path.join(dir_path, "clips.json")
-    save_path_txt = os.path.join(dir_path, f"res_{model_name.split("/")[0]}.txt")
+    save_path_txt = os.path.join(dir_path, f"res_{model_name.split("/")[0]}_{args.threshold}.txt")
     save_path_json = os.path.join(dir_path, f"res_{model_name.split("/")[0]}.json")
     # Get lens segmentation data
     number_list = []
@@ -132,7 +132,7 @@ def keyframe_extraction(dir_path, video_path):
     # Clustering at each shot to obtain keyframe sequence numbers
     keyframe_index, redundant_index = [], []
     key_frame_per_shot = []
-    redundant_per_shot = []
+    redundant_delimination_shot = []
     # process keyframe extraction for each shot
     for i in range(0, len(number_list) - 1, 2):
         log.info(f"Processing shot {i // 2} with frames from {number_list[i]} to {number_list[i + 1]}")
@@ -167,22 +167,26 @@ def keyframe_extraction(dir_path, video_path):
         final_index = [x + start for x in index]
         log.info(f"Clustering result: {final_index}")
         redundant = final_index.copy()
+        # The `redundant_index` variable in the code is used to store the indices of keyframes that
+        # are identified as redundant during the keyframe extraction process. These redundant
+        # keyframes are identified based on a specified redundancy threshold and are removed from the
+        # final list of keyframes. The `redundant_index` list keeps track of these redundant keyframe
+        # indices for further analysis or processing if needed.
         redundant_index.append(redundant)
         
         key_frame_per_shot.append(final_index.copy())
         final_index = redundancy(video_path, final_index, args.threshold, text=clip_text_r)
         log.info(f"Redundant keyframe index: {final_index}")
         
-        redundant_per_shot.append(final_index.copy())
+        redundant_delimination_shot.append(final_index.copy())
         keyframe_index += final_index
     
     keyframe_index.sort()
     log.info(f"Final keyframe index: {str(keyframe_index)}")
     log.info(f"Redundant keyframe index: {str(redundant_index)}")
     json_file = {
-        "keyframe": key_frame_per_shot,
-        "redundant": redundant_per_shot,
-        "keyframe_index": keyframe_index,
+        "keyframes_index": keyframe_index,
+        "redundancy_delete": redundant_delimination_shot,
         "redundant_index": redundant_index
     }
     with open(save_path_txt, 'w') as f:

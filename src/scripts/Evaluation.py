@@ -13,7 +13,7 @@ model_name = config.get('Settings', 'model_name')
 
 
 def evaluation(keyframes_idx, test_index, video_path, dir_path):
-    save_path = os.path.join(dir_path, f"test_result_{model_name.split("/")[0]}.json")
+    save_path = os.path.join(dir_path, f"test_result_{model_name.split("/")[0]}_{args.threshold}.json")
     def color_histogram(img):
         hist = cv2.calcHist([img], [0, 1, 2], None, [8, 8, 8], [0, 255, 0, 255, 0, 255])
         return hist.flatten()
@@ -155,7 +155,7 @@ def evaluation(keyframes_idx, test_index, video_path, dir_path):
 
 
 def handle_video(dir_path, video_path):
-    res_path = os.path.join(dir_path, f"res_{model_name.split("/")[0]}.txt")
+    res_path = os.path.join(dir_path, f"res_{model_name.split("/")[0]}_{args.threshold}.txt")
     with open(res_path, "r", encoding="utf-8") as f:
         res = f.read()
     
@@ -194,16 +194,29 @@ def main(file_dir):
 
 
 def main2():
+    # evaluation(
+    #     # [131, 172, 470, 521, 560, 655, 774, 928, 1041, 1296, 1551, 1754, 1883, 1987, 2362, 2966, 3066, 3449, 3492, 3722, 3850, 4041, 5035, 5791, 6094, 6464, 6518, 6879],
+    #     # [131, 470, 521, 560, 774, 834, 1041, 1551, 1754, 1987, 2362, 2966, 3067, 3449, 3598, 3678, 4041, 5016, 5955, 6115, 6464, 6518],
+    #     # "./Dataset2/-esJrBWj2d8.mp4",
+    #     # "./Dataset2/-esJrBWj2d8"
+    #     "./Dataset2/91IHQYk1IQM.mp4",
+    #     "./Dataset2/91IHQYk1IQM"
+    # )
     evaluation(
-        [131, 172, 470, 521, 560, 655, 774, 928, 1041, 1296, 1551, 1754, 1883, 1987, 2362, 2966, 3066, 3449, 3492, 3722, 3850, 4041, 5035, 5791, 6094, 6464, 6518, 6879],
-        [150, 570, 810, 1110, 1350, 1710, 2070, 2550, 3090, 3390, 3510, 3810, 3990, 4230, 5010, 5310, 5430, 6030, 6210, 6450, 6750],
-        "./Dataset2/-esJrBWj2d8.mp4",
-        "./Dataset2/-esJrBWj2d8"
+        # [131, 172, 470, 521, 560, 655, 774, 928, 1041, 1296, 1551, 1754, 1883, 1987, 2362, 2966, 3066, 3449, 3492, 3722, 3850, 4041, 5035, 5791, 6094, 6464, 6518, 6879],
+        # [131, 470, 521, 560, 774, 834, 1041, 1551, 1754, 1987, 2362, 2966, 3067, 3449, 3598, 3678, 4041, 5016, 5955, 6115, 6464, 6518],
+        [81, 212, 269, 297, 367, 440, 499, 540, 644, 693, 712, 717, 742, 760, 786, 850, 895, 968, 1045, 1129, 1186, 1221, 1255, 1278, 1307, 1354, 1390, 1507, 1564, 1605, 1674, 1706, 1734, 1758, 1779, 1836, 1870, 1911, 1934, 1949, 1990, 2022, 2041, 2083, 2147, 2177, 2231, 2294, 2392, 2476, 2488, 2530, 2556, 2581, 2606, 2628, 2670, 2718, 2755, 2835, 2948, 2975, 3015, 3310],
+        [210, 360, 750, 1230, 1530, 1650, 1830, 2070, 2490, 2610, 2910, 3090, 3210, 3690, 3990, 4230],
+        # "./Dataset2/-esJrBWj2d8.mp4",
+        # "./Dataset2/-esJrBWj2d8"
+        "./Dataset2/91IHQYk1IQM.mp4",
+        "./Dataset2/91IHQYk1IQM"
     )
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("file_dir", type=str, help="Dataset dir")
+    parser.add_argument("--threshold", type=float, default=0.8, help="Threshold for redundancy")
     args = parser.parse_args()
     main(args.file_dir)
     # main2()

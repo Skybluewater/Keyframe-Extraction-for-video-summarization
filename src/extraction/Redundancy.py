@@ -1,19 +1,30 @@
+import os
 import cv2
 import numpy as np
 import torch
-import os
-
+import json
+import argparse
+import configparser
+import logging
 from skimage.metrics import structural_similarity as ssim
 from transformers import AutoModel
 from keybert import KeyBERT
 
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+# read model config and load model, default is clip model
+model_name = config.get('Settings', 'model_name', fallback='ViT-B/32')
+
+# read BAAI model_name
 device = "cuda" if torch.cuda.is_available() else "cpu"
-
-model_name = "BAAI/BGE-VL-large"
-
-model = AutoModel.from_pretrained(model_name, trust_remote_code=True, device_map=device)
-model.set_processor(model_name)
+baai_model_name = "BAAI/BGE-VL-large"
+model = AutoModel.from_pretrained(baai_model_name, trust_remote_code=True, device_map=device)
+model.set_processor(baai_model_name)
 model.eval()
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 kw_model = KeyBERT(model="all-mpnet-base-v2")
 
@@ -132,9 +143,51 @@ def redundancy(video_path, keyframe_index, threshold, text=None):
     return final_index
 
 
-if __name__ == "__main__":
+def handle_video(dir_path, video_path):
+    logger.info(f"Processing {video_path}")
+    res_path = os.path.join(dir_path, f"res_{model_name.split("/")[0]}.json")
+    clips_path = os.path.join(dir_path, "clips.json")
+    with open(res_path, "r", encoding="utf-8") as f:
+        res = json.load(f)
+    with open(clips_path, "r", encoding="utf-8") as f:
+        clips = json.load(f)['aligned']
+    try:
+        redundant_indexes = res["redundant_index"]
+    except:
+        redundant_indexes = res["keyframe_index"]
+    assert len(redundant_indexes) == len(clips)
+    redundant_res = []
+    for i in range(len(redundant_indexes)):
+        redundant_index = redundant_indexes[i]
+        text = clips[i]["rough_chunk"]["text"]
+        text = text if text != "" else None
+        redundant_res.extend(redundancy(video_path, redundant_index, args.threshold, text))
+    redundancy_save_path = os.path.join(dir_path, f"res_{model_name.split("/")[0]}_{args.threshold}.txt")
+    with open(redundancy_save_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(map(str, redundant_res)))
+    logger.info(f"{redundant_res}")
+    return redundant_res
+
+
+def main(file_dir):
+    for item in os.listdir(file_dir):
+        if item.endswith(".mp4"):
+            basename = os.path.splitext(os.path.basename(item))[0]
+            dir_path = os.path.join(file_dir, basename)
+            video_path = os.path.join(file_dir, item)
+            handle_video(dir_path, video_path)
+
+
+def main2():
     video_path = "./Dataset2/-esJrBWj2d8.mp4"
     keyframe_index = [1945, 1957, 1987]
     threshold = 0.8
     text = "It seems that it will be impossible, but with love and patience, it can be done. Sometimes your dog or cat may be uncomfortable when you are handling parts of the body that he isn't used to having touched, get him to lie down, try to relax him and slowly get him used to allowing you to touch his ears, legs, feet and paws."
     redundancy(video_path, keyframe_index, threshold, text)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file_dir", type=str, help="Dataset dir")
+    parser.add_argument("--threshold", type=float, default=0.8, help="Threshold for ssim")
+    args = parser.parse_args()
+    main(args.file_dir)
