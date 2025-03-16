@@ -135,8 +135,12 @@ def evaluation(keyframes_idx, test_index, video_path, dir_path):
     # 计算f值
     print(len(test_index))
     print(len(features))
-    procession = float(x_num / len(test_index))
-    recall = float(x_num / len(keyframes_idx))
+    # procession = float(x_num / len(test_index))
+    # recall = float(x_num / len(keyframes_idx))
+    # procession = float(len(test_index) / (len(test_index) + x_num))
+    # recall = float(len(test_index) / (2 * len(test_index) - x_num))
+    procession = float(x_num / len(keyframes_idx))
+    recall = float(x_num / len(test_index))
     f_value = (2 * procession * recall) / (procession + recall)
     print("p value：" + str(procession), "r value：" + str(recall), "f value：" + str(f_value))
     # 计算保真度和压缩比

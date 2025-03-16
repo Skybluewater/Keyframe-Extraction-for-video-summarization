@@ -13,6 +13,7 @@ from Redundancy import redundancy
 from HybridImpl import Multiplication, Concatenate, Minus, Average, Attention, Division, LinearTransformation, CBP
 from ExtractionKMeans import KMeans_Extraction_Impl
 from ExtractionSpectral import Spectral_Clustering_Impl
+from Evaluation import evaluation
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -40,6 +41,7 @@ elif model_name.split("-")[0] == "LongCLIP":
     elif model_name == "LongCLIP-L":
         model, preprocess = longclip.load(r"E:\model_cache\longclip-L.pt", device=device)
 log.info(f"Using model: {model_name}")
+
 
 def text_embeddings(text_input, model, device):
     # Embedding the two texts separately using the CLIP model
@@ -83,6 +85,13 @@ def text_embeddings(text_input, model, device):
     text_feature = text_feature.cpu().numpy() if text_feature is not None else None
     return text_feature
 
+
+def cal_similarity(f1, f2):
+    f1 = f1.flatten()
+    f2 = f2.flatten()
+    return np.dot(f1, f2) / (np.linalg.norm(f1) * np.linalg.norm(f2))
+
+
 def get_joint_method():
     method = args.joint.lower()
     if method == "minus":
@@ -102,6 +111,7 @@ def get_joint_method():
     elif method == "cbp":
         return CBP
     raise ValueError(f"Invalid joint method: {method}")
+
 
 def keyframe_extraction(dir_path, video_path):
     log.info(f"Processing video: {os.path.basename(video_path)}")
@@ -157,8 +167,10 @@ def keyframe_extraction(dir_path, video_path):
             # Combine image features with text features
             combined_features = []
             for img_feature in sub_features_img:
-                if text_feature_r is not None:                    
-                    combined_r = hybrid_method.hybrid_features(img_feature, text_feature_r, img=args.weights[0], text=args.weights[1])
+                if text_feature_r is not None:
+                    similarity = cal_similarity(img_feature, text_feature_r)
+                    modified_text_feature_r = text_feature_r * similarity
+                    combined_r = hybrid_method.hybrid_features(img_feature, modified_text_feature_r, img=args.weights[0], text=args.weights[1])
                     combined_r = combined_r / np.linalg.norm(combined_r)
                     combined_features.append(combined_r)
             combined_features = np.array(combined_features)
@@ -175,7 +187,7 @@ def keyframe_extraction(dir_path, video_path):
         redundant_index.append(redundant)
         
         key_frame_per_shot.append(final_index.copy())
-        final_index = redundancy(video_path, final_index, args.threshold, text=clip_text_r)
+        final_index = list(redundancy(video_path, final_index, args.threshold, keyframe_index, text=clip_text_r))
         log.info(f"Redundant keyframe index: {final_index}")
         
         redundant_delimination_shot.append(final_index.copy())
@@ -184,6 +196,8 @@ def keyframe_extraction(dir_path, video_path):
     keyframe_index.sort()
     log.info(f"Final keyframe index: {str(keyframe_index)}")
     log.info(f"Redundant keyframe index: {str(redundant_index)}")
+    
+    # Save mid-process files
     json_file = {
         "keyframes_index": keyframe_index,
         "redundancy_delete": redundant_delimination_shot,
@@ -205,6 +219,13 @@ def keyframe_extraction(dir_path, video_path):
     
     with open(save_path_json, "w", encoding="utf-8") as f:
         json.dump(json_file, f, ensure_ascii=False, indent=4, default=default_dump)
+    
+    # Evaluation
+    label_path = os.path.join(dir_path, "label.txt")
+    with open(label_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    label_idx = [int(i) for i in filter(lambda x: x != '', content.split('\n'))]
+    evaluation(keyframe_index, label_idx, video_path, dir_path)
 
 
 def main(file_dir):
