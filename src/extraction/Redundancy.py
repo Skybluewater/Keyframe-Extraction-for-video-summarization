@@ -154,14 +154,14 @@ def redundancy(video_path, candidate_idxs, threshold, prev_idxs, text=None):
     _candidate_idxs = sorted(list(set_index_after_ssim))
     accumulated_scores = np.zeros(len(_candidate_idxs))
     frame_base_address = os.path.join("./Dataset", os.path.splitext(os.path.basename(video_path))[0])
-    frames_address = [os.path.join(frame_base_address, f"frame_{convert_index(index)}.png") for index in _candidate_idxs]
+    frames_address = [os.path.join(frame_base_address, f"frame_{convert_index(index + 1)}.png") for index in _candidate_idxs]
     
     if text is None:
         def filter_redundant_frames_baai_image_only():
             with torch.no_grad():
                 for idx, _candidate_idx in enumerate(_candidate_idxs):
                     # even though frame_address is not used in encoding, it's defined here for consistency
-                    frame_address = os.path.join(frame_base_address, f"frame_{convert_index(_candidate_idx)}.png")
+                    frame_address = os.path.join(frame_base_address, f"frame_{convert_index(_candidate_idx + 1)}.png")
                     query = model.encode(
                         text = [query_text],
                         images = [frame_address]
